@@ -1,3 +1,23 @@
+// ------------------------------
+// Theme Toggle Logic
+// ------------------------------
+function toggleTheme() {
+    const body = document.body;
+    const btn = document.getElementById('theme-toggle');
+
+    body.classList.toggle('dark-mode');
+
+    if (body.classList.contains('dark-mode')) {
+        btn.innerHTML = '☀️';
+        btn.title = 'Switch to light mode';
+        localStorage.setItem('theme', 'dark');
+    } else {
+        btn.innerHTML = '🌙';
+        btn.title = 'Switch to dark mode';
+        localStorage.setItem('theme', 'light');
+    }
+}
+
 var currentExpression = '';
 
 var currencyRates = {
@@ -165,6 +185,36 @@ function fetchCurrencyRates() {
     });
 }
 
+// Set theme on page load from localStorage
+window.addEventListener('DOMContentLoaded', function () {
+    const theme = localStorage.getItem('theme');
+    const body = document.body;
+    const btn = document.getElementById('theme-toggle');
+
+    if (btn) {
+        if (theme === 'dark') {
+            body.classList.add('dark-mode');
+            btn.innerHTML = '☀️';
+            btn.title = 'Switch to light mode';
+        } else {
+            btn.innerHTML = '🌙';
+            btn.title = 'Switch to dark mode';
+        }
+    }
+});
+
+// ------------------------------
+// Calculator State
+// ------------------------------
+let left = '';
+let operator = '';
+let right = '';
+let steps = [];
+const MAX_STEPS = 6;
+
+// ------------------------------
+// Basic Calculator Functions
+// ------------------------------
 function appendToResult(value) {
     currentExpression += value.toString();
     updateResult();
@@ -196,8 +246,9 @@ function clearResult() {
     updateResult();
 }
 
-
-
+// ------------------------------
+// Calculate Result
+// ------------------------------
 function calculateResult() {
     if (currentExpression.length === 0) return;
 
@@ -246,11 +297,24 @@ function checkPrime() {
     enableSpeakButton();
 }
 
+    if (steps.length < MAX_STEPS) {
+        steps.push(`Step ${steps.length + 1}: ${l} ${operator} ${r} = ${result}`);
+    }
 
+    left = result.toString();
+    operator = '';
+    right = '';
 
+    updateStepsDisplay();
+    updateResult();
+}
+
+// ------------------------------
+// Convert Number to Words
+// ------------------------------
 function numberToWords(num) {
     if (num === 'Error') return 'Error';
-    if (num === '') return '';
+    if (!num) return '';
 
     const n = parseFloat(num);
     if (isNaN(n)) return '';
@@ -258,7 +322,8 @@ function numberToWords(num) {
 
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
     const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 
+                   'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
     const scales = ['', 'Thousand', 'Million', 'Billion', 'Trillion'];
 
     function convertGroup(val) {
@@ -270,7 +335,9 @@ function numberToWords(num) {
         if (val >= 10 && val <= 19) {
             res += teens[val - 10] + ' ';
         } else if (val >= 20) {
-            res += tens[Math.floor(val / 10)] + (val % 10 !== 0 ? '-' + ones[val % 10] : '') + ' ';
+            res += tens[Math.floor(val / 10)];
+            if (val % 10 !== 0) res += '-' + ones[val % 10];
+            res += ' ';
         } else if (val > 0) {
             res += ones[val] + ' ';
         }
@@ -279,19 +346,19 @@ function numberToWords(num) {
 
     let sign = n < 0 ? 'Negative ' : '';
     let absN = Math.abs(n);
-    let parts = absN.toString().split('.');
+    const parts = absN.toString().split('.');
     let integerPart = parseInt(parts[0]);
-    let decimalPart = parts[1];
-
+    const decimalPart = parts[1];
     let wordArr = [];
+
     if (integerPart === 0) {
         wordArr.push('Zero');
     } else {
         let scaleIdx = 0;
         while (integerPart > 0) {
-            let chunk = integerPart % 1000;
+            const chunk = integerPart % 1000;
             if (chunk > 0) {
-                let chunkWords = convertGroup(chunk);
+                const chunkWords = convertGroup(chunk);
                 wordArr.unshift(chunkWords + (scales[scaleIdx] ? ' ' + scales[scaleIdx] : ''));
             }
             integerPart = Math.floor(integerPart / 1000);
@@ -311,6 +378,9 @@ function numberToWords(num) {
     return result.trim();
 }
 
+// ------------------------------
+// Update Display
+// ------------------------------
 function updateResult() {
     document.getElementById('result').value = currentExpression || '0';
 
@@ -326,9 +396,13 @@ function updateResult() {
         wordResult.innerHTML = '';
         wordArea.style.display = 'none';
     }
+
     enableSpeakButton();
 }
 
+// ------------------------------
+// Text-to-Speech
+// ------------------------------
 function speakResult() {
     const speakBtn = document.getElementById('speak-btn');
     const wordResultEl = document.getElementById('word-result');
@@ -347,14 +421,52 @@ function speakResult() {
     utterance.rate = 0.9;
     utterance.onstart = () => speakBtn.classList.add('speaking');
     utterance.onend = () => speakBtn.classList.remove('speaking');
+
     window.speechSynthesis.speak(utterance);
 }
 
+// ------------------------------
+// Speak Button Enable/Disable
+// ------------------------------
 function enableSpeakButton() {
     const speakBtn = document.getElementById('speak-btn');
     if (!speakBtn) return;
     const hasContent = document.getElementById('word-result').innerHTML.trim().length > 0;
     speakBtn.disabled = !hasContent;
+}
+
+
+// Factor Finder & Prime Checker
+// Get factors of a number
+function factors(num) {
+    let result = [];
+    for (let i = 1; i <= num; i++) {
+        if (num % i === 0) result.push(i);
+    }
+    return result;
+}
+
+// Main function to handle factor finding and prime checking
+function factorPrimeCheck() {
+    const numStr = left || right; // use current number or result
+    const num = parseInt(numStr);
+    
+    if (isNaN(num)) {
+        alert("Please enter a valid number first!");
+        return;
+    }
+
+    const factorList = factors(num);
+    const primeCheck = isPrime(num);
+// Prepare message
+    let message = `Factors of ${num}: ${factorList.join(', ')}\n`;
+    message += `Is ${num} prime? ${primeCheck ? 'Yes' : 'No'}`;
+
+    // Push to steps and keep max 6
+    steps.push(message);
+    if (steps.length > 6) steps.shift();
+
+    updateStepsDisplay();
 }
 
 fetchCurrencyRates()
